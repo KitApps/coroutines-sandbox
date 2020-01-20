@@ -1,13 +1,15 @@
 package com.attendifylabs.blocking
 
+import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.getForObject
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
+import org.springframework.web.reactive.function.client.awaitExchange
 
 @SpringBootApplication
 class BlockingApplication
@@ -19,22 +21,24 @@ fun main() {
 @Controller
 @RequestMapping("ramen")
 class RamenController(
-    val jdbcTemplate: NamedParameterJdbcTemplate,
-    val restTemplate: RestTemplate
+    private val webClient: WebClient = WebClient.create(),
+    private val databaseClient: DatabaseClient
 ) {
 
     @PostMapping
-    fun orderRamen() =
+    suspend fun orderRamen() =
         RamenOrder(
-            noodles = restTemplate.getForObject(NOODLES_URL),
-            broth = restTemplate.getForObject(BROTH_URL),
-            chicken = restTemplate.getForObject(CHICKEN_URL),
-            egg = restTemplate.getForObject(EGG_URL),
-            scallion = restTemplate.getForObject(SCALLION_URL),
-            soySauce = restTemplate.getForObject(SOYSAUSE_URL),
-            hotSauce = restTemplate.getForObject(HOTSAUCE_URL)
+            noodles = webClient.get().uri(NOODLES_URL).awaitExchange().awaitBody(),
+            broth = webClient.get().uri(BROTH_URL).awaitExchange().awaitBody(),
+            chicken = webClient.get().uri(CHICKEN_URL).awaitExchange().awaitBody(),
+            egg = webClient.get().uri(EGG_URL).awaitExchange().awaitBody(),
+            scallion = webClient.get().uri(SCALLION_URL).awaitExchange().awaitBody(),
+            soySauce = webClient.get().uri(SOYSAUSE_URL).awaitExchange().awaitBody(),
+            hotSauce = webClient.get().uri(HOTSAUCE_URL).awaitExchange().awaitBody()
         ).apply {
-            jdbcTemplate.update(CREATE_RAMEN_ORDER, mapOf(RAMEN_ORDER to this))
+            databaseClient.execute(CREATE_RAMEN_ORDER)
+                .bind(RAMEN_ORDER, this)
+                .fetch().rowsUpdated().awaitSingle()
         }
 }
 
