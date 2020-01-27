@@ -26,9 +26,9 @@ fun main() {
 @RestController
 @RequestMapping("ramen")
 class RamenController(
-    val jdbcTemplate: NamedParameterJdbcTemplate,
-    val restTemplate: RestTemplate,
-    val objectMapper: ObjectMapper
+    private val jdbcTemplate: NamedParameterJdbcTemplate,
+    private val restTemplate: RestTemplate,
+    private val objectMapper: ObjectMapper
 ) {
 
     @PostMapping

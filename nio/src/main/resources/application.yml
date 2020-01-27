@@ -4,4 +4,4 @@ spring:
         port: 5432
         username: yuranos
         password: ""
-        dbname: ramen
+        dbname: ramen_order
