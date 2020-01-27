@@ -34,7 +34,7 @@ tasks.withType<Test> {
 
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
-		freeCompilerArgs = listOf("-Xjsr305=strict", , "-Xnew-inference")
+		freeCompilerArgs = listOf("-Xjsr305=strict", "-Xnew-inference")
 		jvmTarget = "1.8"
 	}
 }

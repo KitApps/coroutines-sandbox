@@ -1,6 +1,9 @@
 package com.attendifylabs.blocking
 
 import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -26,9 +29,9 @@ class RamenController(
 ) {
 
     @PostMapping
-    suspend fun orderRamen() =
+    suspend fun orderRamen() = coroutineScope {
         RamenOrder(
-            noodles = webClient.get().uri(NOODLES_URL).awaitExchange().awaitBody(),
+            noodles = async {webClient.get().uri(NOODLES_URL).awaitExchange().awaitBody(),
             broth = webClient.get().uri(BROTH_URL).awaitExchange().awaitBody(),
             chicken = webClient.get().uri(CHICKEN_URL).awaitExchange().awaitBody(),
             egg = webClient.get().uri(EGG_URL).awaitExchange().awaitBody(),
@@ -39,11 +42,10 @@ class RamenController(
             databaseClient.execute(CREATE_RAMEN_ORDER)
                 .bind(RAMEN_ORDER, this)
                 .fetch().rowsUpdated().awaitSingle()
-        }
+        }}
 }
 
 data class Noodles(val content: List<String>)
-
 data class Broth(val meatType: String)
 data class Chicken(val amount: String)
 data class Egg(val color: String)
