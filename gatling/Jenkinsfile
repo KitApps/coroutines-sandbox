@@ -1,0 +1,123 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+
+    parameters {
+
+        choice(name: 'pixel_api_host', choices: ['t2_2xlarge', 't2_xlarge'], description: 'instance for deployment')
+        choice(name: 'pixel_metadata_host', choices: ['t2_xlarge', 't2_2xlarge'], description: 'instance for deployment')
+
+        choice(
+                name: 'simulation',
+                choices: ['NONE', 'PIXEL_API_FUNC', 'PIXEL_API_LOAD'/*, 'PIXEL_META_VALIDATION_FUNC', 'PIXEL_META_VALIDATION_LOAD', 'PIXEL_META_FUNC', 'PIXEL_META_LOAD'*/],
+                description: 'simulation to be executed'
+        )
+
+        // common
+        string(name: 'actions_per_pixel', defaultValue: '25', description: 'Number of actions in one pixel')
+        string(name: 'pixel_salt', defaultValue: '9nfxeneNcoHFzGaO8m', description: 'Salt value used for signature calculation')
+//        string(name: 'spawn_users_per_second', defaultValue: '300', description: 'Number of users to be ramped within a second')
+//        string(name: 'test_duration_seconds', defaultValue: '1800', description: 'Load test duration in seconds')
+
+        string(name: 'users_number', defaultValue: '600000', description: 'Number of users to be ramped within ramp period')
+        string(name: 'ramp_duration_seconds', defaultValue: '1800', description: 'ramp period in seconds')
+        string(name: 'test_max_duration_seconds', defaultValue: '2000', description: 'test max duration in seconds')
+
+        string(name: 'api_number_of_pixels', defaultValue: '25', description: 'Number of pixels that will be created and used in test')
+        string(name: 'api_pause_between_track_actions', defaultValue: '100', description: 'Pause in millis between actions')
+    }
+
+    environment {
+//        add new hosts here:
+//        t2_xlarge -> 172.31.2.175
+//        t2_2xlarge -> 172.31.15.76
+        METADATA_INSTANCE_URL = "http://${params.pixel_metadata_host == 't2_xlarge' ? '172.31.2.175' : '172.31.15.76'}:8081"
+        API_INSTANCE_URL = "http://${params.pixel_api_host == 't2_xlarge' ? '172.31.2.175' : '172.31.15.76'}:8084/v1"
+
+        SIMULATION_FEEDER_FILE_PATH = "${env.WORKSPACE}${env.WORKSPACE.endsWith('/') ? '': '/'}pixels.json"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh "./gradlew clean build -x test"
+            }
+        }
+
+        stage('Generate-feeder') {
+            when {
+                expression {
+                    params.simulation == 'PIXEL_API_FUNC' || params.simulation == 'PIXEL_API_LOAD' || params.simulation == 'API_PLUS_META_LOAD_TEST' || params.simulation == 'PIXEL_META_VALIDATION_FUNC' || params.simulation == 'PIXEL_META_VALIDATION_LOAD'
+                }
+            }
+
+            environment {
+                SIMULATION_NUMBER_OF_ACTIONS_PER_PIXEL = "${params.actions_per_pixel}"
+                SIMULATION_NUMBER_OF_PIXELS = "${params.api_number_of_pixels}"
+                SIMULATION_SIGNATURE_SALT = "${params.pixel_salt}"
+            }
+
+            steps {
+
+                echo "clean up old feeder file"
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitUntil {
+                        script {
+                            def status = sh script: "rm ${env.SIMULATION_FEEDER_FILE_PATH}", returnStatus: true
+                            return (status == 0)
+                        }
+                    }
+                }
+
+                echo "generating new feeder file"
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitUntil {
+                        script {
+                            def status = sh script: './gradlew :load_test_util:run', returnStatus: true
+                            return (status == 0)
+                        }
+                    }
+                }
+
+//                sh "cp ${env.WORKSPACE + '/' + env.SIMULATION_FEEDER_FILE} ${env.WORKSPACE}/load_test_simulations/src/gatling/resources"
+            }
+        }
+
+        stage('Load-test') {
+            when {
+                expression { params.simulation != 'NONE' }
+            }
+
+            environment {
+                SIMULATION_FEEDER_FILE_PATH = "${env.SIMULATION_FEEDER_FILE_PATH}"
+                INSTANCE_URLS = "${params.simulation.contains("API") ? env.API_INSTANCE_URL : env.METADATA_INSTANCE_URL}"
+                RAMP_USERS_NUMBER = "${params.users_number}"
+                RAMP_DUR_SECONDS = "${params.ramp_duration_seconds}"
+                TEST_DURATION = "${params.test_max_duration_seconds}"
+                TRACK_ACTIONS_NUMBER_PER_USER = "${params.metadata_track_actions_per_user}"
+                PAUSE_DURATION_MILLIS_PER_USER = "${params.api_pause_between_track_actions}"
+                NUMBER_OF_USERS_FOR_METADATA_TEST = "${params.users_number}"
+                NUMBER_OF_PIXELS_PER_USER_FOR_METADATA_TEST = "${params.metadata_pixels_per_user}"
+                NUMBER_OF_ACTIONS_PER_PIXEL_FOR_METADATA_TEST = "${params.actions_per_pixel}"
+                METADATA_VALIDATION_RPS = "${params.validation_requests_per_sec}"
+                API_INVALID_TRACKS_PER_USER = '2'
+                API_INSTANT_TRACK_REQUESTS_NUMBER = '5'
+                API_AVERAGE_USER_SESSION_DURATION_MS = '60000'
+            }
+
+            steps {
+                echo sh(script: 'env|sort', returnStdout: true)
+
+                sh "./gradlew gatlingRun -PsimulationName=${params.simulation}"
+                gatlingArchive()
+            }
+        }
+    }
+}
