@@ -12,7 +12,7 @@ dependencies {
 val simulationName: String? by project
 val defaultSimulationName: String = "SIMULATION"
 val simulationClasses = mapOf(
-    "SIMULATION" to listOf("com.attendify.pixelloadtestssimulations.PixelApiLoadTestSimulation")
+    "SIMULATION" to listOf("com.attendify.sandbox.simulation.RamenLoadTestSimulation")
 )
 
 fun simulationsToRun(simulationName: String): List<String> = simulationClasses[simulationName].orEmpty()

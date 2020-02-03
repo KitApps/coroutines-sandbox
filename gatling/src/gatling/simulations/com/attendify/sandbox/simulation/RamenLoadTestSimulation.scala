@@ -2,7 +2,7 @@ package com.attendify.sandbox.simulation
 
 import com.attendify.sandbox.simulation.Configs._
 import io.gatling.core.Predef._
-import io.gatling.core.controller.inject.open.RampOpenInjection
+import io.gatling.core.controller.inject.open.{AtOnceOpenInjection, RampOpenInjection}
 import io.gatling.core.scenario.Simulation
 import io.gatling.core.structure.{ChainBuilder, ScenarioBuilder}
 import io.gatling.http.Predef._
@@ -18,13 +18,14 @@ import scala.util.Try
 class RamenLoadTestSimulation extends Simulation {
 
   val httpProtocol: HttpProtocolBuilder = http
-    .baseUrls("some_url")
+    .baseUrls(serviceUrl)
     .headers(simulationHeaders)
 
-  val post: ChainBuilder = exec(http("Order Ramen").post("/ramen"))
+  val post: ChainBuilder = exec(http("Order Ramen").post("/ramen").check(status.is(200)))
 
   val happyPathScenario: ScenarioBuilder = scenario("Normal user tracking activity").exec(post)
 
+//  private val rampSingleUserStrategy: AtOnceOpenInjection = atOnceUsers(1)
   private val userInjection: RampOpenInjection = rampUsers(usersNumber) during (rampDuringSeconds seconds)
 
   setUp(happyPathScenario.inject(userInjection)).maxDuration(testDurationSeconds seconds).protocols(httpProtocol)
