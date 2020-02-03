@@ -22,3 +22,7 @@ gatling {
     jvmArgs = listOf("-server", "-Xms4G", "-Xmx4G")
     simulations = simulationsToRun(simulationName ?: defaultSimulationName)
 }
+
+repositories {
+    mavenCentral()
+}
