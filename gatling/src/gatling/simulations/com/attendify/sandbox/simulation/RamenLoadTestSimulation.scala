@@ -34,6 +34,6 @@ class RamenLoadTestSimulation extends Simulation {
 
   val post: ChainBuilder =
     exec(
-      http("Init")
-        .post("/init"))
+      http("Order Ramen")
+        .post("/ramen"))
 }
