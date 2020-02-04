@@ -1,5 +1,5 @@
 spring:
     datasource:
-        url: "jdbc:postgresql://localhost:5432/meetings"
-        username: meetings
-        password: meetings
+        url: "jdbc:postgresql://${RDS_HOSTNAME:localhost}:${RDS_PORT:5432}/ramen_order"
+        username: "${RDS_USERNAME:postgres}"
+        password: "${RDS_PASSWORD:}"
