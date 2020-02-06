@@ -12,6 +12,7 @@ pipeline {
         )
 
         string(name: 'load_test_duration', defaultValue: '300', description: 'Simulation duration in seconds')
+        string(name: 'requests_per_second', defaultValue: '500', description: 'Number of requests per one second of test to be performed.')
 
     }
 
@@ -38,6 +39,7 @@ pipeline {
                 SERVICE_INSTANCE = "http://${params.service_host == 'NIO' ? '172.31.2.175' : '172.31.22.136'}:8080"
 
                 SIMULATION_DURATION = "${params.load_test_duration}"
+                SIMULATION_RPS = "${params.requests_per_second}"
             }
 
             steps {

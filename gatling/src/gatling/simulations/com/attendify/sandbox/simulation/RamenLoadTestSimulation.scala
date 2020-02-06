@@ -26,7 +26,7 @@ class RamenLoadTestSimulation extends Simulation {
   val happyPathScenario: ScenarioBuilder = scenario("Normal user tracking activity").exec(post)
 
 //  private val rampSingleUserStrategy: AtOnceOpenInjection = atOnceUsers(1)
-  private val userInjection: RampOpenInjection = rampUsers(usersNumber) during (rampDuringSeconds seconds)
+  private val userInjection: RampOpenInjection = rampUsers(usersNumber) during (numberOfRequestPerSecond seconds)
 
   setUp(happyPathScenario.inject(userInjection)).maxDuration(testDurationSeconds seconds).protocols(httpProtocol)
 
@@ -34,12 +34,13 @@ class RamenLoadTestSimulation extends Simulation {
 
 object Configs {
 
-  val serviceUrl: String = SystemPropertiesUtil.getAsStringOrElse("SERVICE_INSTANCE", "")
-  val rampDuringSeconds: Int = SystemPropertiesUtil.getAsIntOrElse("SIMULATION_DURATION", 300)
+  val serviceUrl: String = SystemPropertiesUtil.getAsStringOrElse("SERVICE_INSTANCE",       "")
+  val rampDuringSeconds: Int = SystemPropertiesUtil.getAsIntOrElse("SIMULATION_DURATION",   300)
+  val numberOfRequestPerSecond: Int = SystemPropertiesUtil.getAsIntOrElse("SIMULATION_RPS", 500)
 
-  val numberOfUsersPerSecond: Int = 10
-  val usersNumber: Int = rampDuringSeconds * numberOfUsersPerSecond
-  val testDurationSeconds: Int = rampDuringSeconds + 30
+  val numberOfUsersPerSecond: Int = numberOfRequestPerSecond
+  val usersNumber: Int = numberOfRequestPerSecond * numberOfUsersPerSecond
+  val testDurationSeconds: Int = numberOfRequestPerSecond + 30
   val simulationHeaders: Map[String, String] = Map(
     "Content-Type" -> "application/json;charset=UTF-8",
     "User-Agent" -> "Mozilla/5.0 (Windows NT 5.1; rv:31.0) Gecko/20100101 Firefox/31.0")
