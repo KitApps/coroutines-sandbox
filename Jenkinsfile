@@ -35,7 +35,7 @@ pipeline {
 
             environment {
                 //                                                              nio             blocking
-                SERVICE_INSTANCE = "http://${params.service_host == 'NIO' ? '172.31.2.175' : '172.31.15.76'}:8080"
+                SERVICE_INSTANCE = "http://${params.service_host == 'NIO' ? '172.31.2.175' : '172.31.22.136'}:8080"
 
                 SIMULATION_DURATION = "${params.load_test_duration}"
             }
