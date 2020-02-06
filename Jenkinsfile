@@ -30,7 +30,7 @@ pipeline {
 
         stage('Load-test') {
             when {
-                expression { params.simulation != 'NONE' }
+                expression { params.service_host != 'NONE' }
             }
 
             environment {
