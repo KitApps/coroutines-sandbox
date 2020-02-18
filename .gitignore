@@ -1,5 +1,7 @@
 # Compiled class file
 *.class
+/gatling/.idea
+/gatling/build
 
 # Log file
 *.log
